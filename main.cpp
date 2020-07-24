@@ -30,7 +30,7 @@ int timerApp(int argc, char** argv) {
         (struct timeval) {1, 100000}, "Tack");
     
     bool canceled = false;
-    WebApp& app = WebApp::instance("/home/voc/projects/ServerVoc/build/html");
+    WebApp& app = WebApp::instance("/home/student/NDS/snode.c/build/html");
     
     app.get("/",
             [&] (const Request& req, const Response& res) -> void {
@@ -91,12 +91,20 @@ int timerApp(int argc, char** argv) {
 
 
 int simpleWebserver(int argc, char** argv) {
-    WebApp& app = WebApp::instance("/home/voc/projects/ServerVoc/build/html");
+    WebApp& app = WebApp::instance("/home/student/NDS/snode.c/build/html");
     
     Router router;
     
     router.get("/search/", [] (const Request& req, const Response& res, const std::function<void (void)>& next) {
         std::cout << "Route 3" << std::endl;
+        next();
+    });
+    
+    //http://localhost:8080/search/buxtehude123
+    router.get("/search/:search", [] (const Request& req, const Response& res, const std::function<void (void)>& next) {
+        std::cout << "Show Search of" << std::endl;
+        std::cout << "search: " << req.getAttribute<std::string>("search") << std::endl;
+        std::cout << "--------------------------------"<< std::endl;
         next();
     });
     
@@ -131,6 +139,26 @@ int simpleWebserver(int argc, char** argv) {
                           }
                       });
                   }
+              });
+    
+    //http://localhost:8080/account/123/perfectNDSgroup
+    app.get("/account/:userId(\\d*)/:username", 
+              [&] (const Request& req, const Response& res) -> void {
+                  
+                  std::cout << "Show account of" << std::endl;
+                  std::cout << "userId: " << req.getAttribute<std::string>("userId") << std::endl;
+                  std::cout << "username: " << req.getAttribute<std::string>("username") << std::endl;
+                  std::cout << "--------------------------------"<< std::endl;
+              });
+    
+    //http://localhost:8080/asdf/d123e/jklö/hallo
+    app.get("/asdf/:testRegex1(d\\d{3}e)/jklö/:testRegex2", 
+              [&] (const Request& req, const Response& res) -> void {
+                  
+                  std::cout << "Testing Regex" << std::endl;
+                  std::cout << "testRegex1: " << req.getAttribute<std::string>("testRegex1") << std::endl;
+                  std::cout << "testRegex2: " << req.getAttribute<std::string>("testRegex2") << std::endl;
+                  std::cout << "--------------------------------"<< std::endl;
               });
 
     app.use("/", [] (const Request& req, const Response& res, const std::function<void (void)>& next) {
@@ -228,7 +256,7 @@ int simpleWebserver(int argc, char** argv) {
                 
                 
 int testPost(int argc, char* argv[]) {
-    WebApp& app = WebApp::instance("/home/voc/projects/ServerVoc/build/html");
+    WebApp& app = WebApp::instance("/home/student/NDS/snode.c/build/html");
     
     app.get("/",
             [&] (const Request& req, const Response& res) -> void {
