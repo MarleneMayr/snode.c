@@ -1,100 +1,70 @@
+/*
+ * snode.c - a slim toolkit for network communication
+ * Copyright (C) 2020  Volker Christian <me@vchrist.at>
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #ifndef REQUEST_H
 #define REQUEST_H
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
-#include <map>
-#include <memory>
 #include <string>
 
 #endif /* DOXYGEN_SHOULD_SKIP_THIS */
 
-class HTTPContext;
+#include "AttributeInjector.h"
 
+namespace http {
 
-class Request {
-private:
-public:
-    Request(HTTPContext* httpContext);
+    class HTTPServerContext;
 
-    std::multimap<std::string, std::string>& header() const;
-    const std::string& header(const std::string& key, int i = 0) const;
-    const std::string& cookie(const std::string& key) const;
+    class Request : public utils::MultibleAttributeInjector {
+    protected:
+        explicit Request() = default;
+        virtual ~Request() = default;
 
-    const std::string& query(std::string key) const;
-    const std::string& httpVersion() const;
-    const std::string& fragment() const;
-
-    const std::string& method() const;
-
-    int bodySize() const;
-
-    // Properties
-    const std::string& originalUrl;
-    mutable std::string url;
-    char*& body;
-    const std::string& path;
-
-private:
-    template <typename Attribute> class AttributeProxy {
     public:
-        explicit AttributeProxy()
-            : _value(Attribute()) {
-        }
+        const std::string& header(const std::string& key, int i = 0) const;
+        const std::string& cookie(const std::string& key) const;
+        const std::string& query(const std::string& key) const;
+        int bodyLength() const;
 
-        virtual ~AttributeProxy() = default;
+        // Properties
+        std::string originalUrl;
+        std::string httpVersion;
+        std::string fragment;
+        std::string url;
+        char* body = nullptr;
+        std::string path;
+        std::string method;
+        int contentLength = 0;
+        bool keepAlive = false;
 
-        const Attribute& operator=(const Attribute& value) const {
-            _value = const_cast<Attribute&>(value);
-            return _value;
-        }
+    protected:
+        virtual void reset();
 
-        Attribute& operator=(Attribute& value) const {
-            _value = value;
-            return _value;
-        }
+        const std::map<std::string, std::string>* queries = nullptr;
+        const std::map<std::string, std::string>* headers = nullptr;
+        const std::map<std::string, std::string>* cookies = nullptr;
 
+        std::string nullstr = "";
 
-        operator Attribute&() const {
-            return _value;
-        }
-
-    private:
-        mutable Attribute _value;
+        friend class HTTPServerContext;
     };
 
-public:
-    template <typename Attribute> const Attribute getAttribute(const std::string& key = "") const {
-        Attribute attribute = Attribute();
-
-        std::map<std::string, std::shared_ptr<void>>::const_iterator it = attributes.find(typeid(Attribute).name() + key);
-        if (it != attributes.end()) {
-            attribute = static_cast<Attribute>(*std::static_pointer_cast<AttributeProxy<Attribute>>(it->second));
-        }
-
-        return attribute;
-    }
-
-    template <typename Attribute> bool setAttribute(const Attribute& attribute, const std::string& key = "") const {
-        bool inserted = false;
-
-        if (attributes.find(typeid(Attribute).name() + key) == attributes.end()) {
-            std::shared_ptr<AttributeProxy<Attribute>> a(new AttributeProxy<Attribute>);
-            *a = attribute;
-            attributes.insert(
-                std::pair<std::string, std::shared_ptr<void>>(typeid(Attribute).name() + key, std::static_pointer_cast<void>(a)));
-            inserted = true;
-        }
-
-        return inserted;
-    }
-
-private:
-    HTTPContext* httpContext;
-
-    mutable std::map<std::string, std::shared_ptr<void>> attributes;
-
-    std::string nullstr = "";
-};
+} // namespace http
 
 #endif // REQUEST_H
